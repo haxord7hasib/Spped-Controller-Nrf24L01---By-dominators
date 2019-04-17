@@ -1,0 +1,115 @@
+/*
+---- Receiver Code ----
+HASIBS TECHS & MERT ARDUINO )
+
+*/
+
+#include <Servo.h>    //the library which helps us to control the servo motor
+#include <SPI.h>      //the communication interface with the modem
+#include "RF24.h"     //the library which helps us to control the radio modem (nRF24L)
+
+//define our L298N control pins
+//Motor A
+const int RightMotorForward = 2;    // IN1
+const int RightMotorBackward = 3;   // IN2
+//Motor B
+const int LeftMotorForward = 4;     // IN3
+const int LeftMotorBackward = 6;    // IN4
+
+//define the servo name
+Servo myServo_1;
+Servo myServo_2;
+
+struct dataStruct {
+  int angleValue_1;        
+  int angleValue_2;
+  } myData;
+
+
+RF24 radio(5,10);     /*This object represents a modem connected to the Arduino. 
+                      Arguments 5 and 10 are a digital pin numbers to which signals 
+                      CE and CSN are connected.*/
+
+const uint64_t pipe = 0xE8E8F0F0E1LL; //the address of the modem,that will receive data from the Arduino.
+
+int data[1];
+
+
+void setup(){
+  pinMode(RightMotorForward, OUTPUT);
+  pinMode(LeftMotorForward, OUTPUT);
+  pinMode(LeftMotorBackward, OUTPUT);
+  pinMode(RightMotorBackward, OUTPUT);
+
+  //define the servo input pins
+  myServo_1.attach(7);
+  myServo_2.attach(9);
+  
+  radio.begin();                    //it activates the modem.
+  radio.openReadingPipe(1, pipe);   //determines the address of our modem which receive data.
+  radio.startListening();           //enable receiving data via modem
+  }
+
+void loop(){
+  if(radio.available()){
+    radio.read(data, 1);
+    
+    if(data[0] < 11 && data[0] > 6){
+    // This is backward
+    // Set a Motor A backward
+    digitalWrite(RightMotorForward, LOW);
+    digitalWrite(RightMotorBackward, HIGH);
+    // Set a Motor B backward
+    digitalWrite(LeftMotorForward, LOW);
+    digitalWrite(LeftMotorBackward, HIGH);
+    }
+    if(data[0] > -1 && data[0] < 4){
+    // This is forward
+    // Set a Motor A forward
+    digitalWrite(RightMotorForward, HIGH);
+    digitalWrite(RightMotorBackward, LOW);
+    // Set a Motor B forward
+    digitalWrite(LeftMotorForward, HIGH);
+    digitalWrite(LeftMotorBackward, LOW);
+    }
+    if (data[0] == 5){
+    // Stop Motors
+    digitalWrite(RightMotorForward, LOW);
+    digitalWrite(RightMotorBackward, LOW);
+    digitalWrite(LeftMotorForward, LOW);
+    digitalWrite(LeftMotorBackward, LOW);
+    }
+    // This is Backward
+    // Set a Motor A Backward
+    if(data[0] < 21 && data[0] > 16){
+    digitalWrite(RightMotorForward, HIGH);
+    digitalWrite(RightMotorBackward, LOW);
+    // Set a Motor B Backward
+    digitalWrite(LeftMotorForward, LOW);
+    digitalWrite(LeftMotorBackward, HIGH);
+    }
+    // Turn Right
+    if(data[0] > 10 && data[0] < 14){
+    digitalWrite(RightMotorForward, LOW);
+    digitalWrite(RightMotorBackward, HIGH);
+    digitalWrite(LeftMotorForward, HIGH);
+    digitalWrite(LeftMotorBackward, LOW);
+    }
+    // Turn Left
+    if(data[0] == 15){
+    digitalWrite(RightMotorForward, LOW);
+    digitalWrite(RightMotorBackward, LOW);
+    digitalWrite(LeftMotorForward, LOW);
+    digitalWrite(LeftMotorBackward, LOW);
+    }
+
+     if (radio.available()) {
+     while (radio.available()) {
+      radio.read( &myData, sizeof(myData) );
+      myServo_1.write(myData.angleValue_1);
+      myServo_2.write(myData.angleValue_2);
+       
+    }
+  
+}
+  }}
